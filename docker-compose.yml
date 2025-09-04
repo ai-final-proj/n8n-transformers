@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/home/node/.n8n/n8n.sqlite
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      - ollama
+    networks:
+      - n8n-net
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    ports:
+      - "11434:11434"   # Ollama API
+    volumes:
+      - ollama_data:/root/.ollama   # persist pulled models
+    networks:
+      - n8n-net
+
+volumes:
+  ollama_data:
+
+networks:
+  n8n-net:
+    driver: bridge
