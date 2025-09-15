@@ -19,3 +19,6 @@ mysql -u root -p scheduler < schema.sql
 ```
 
 Install ollama huggingface_hub etc. environments in order to load models 
+
+important:
+change th eemail to yours in the postgres yml file
