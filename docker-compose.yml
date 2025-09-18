@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   n8n:
     image: n8nio/n8n
@@ -8,6 +6,7 @@ services:
     environment:
       - DB_TYPE=sqlite
       - DB_SQLITE_DATABASE=/home/node/.n8n/n8n.sqlite
+      - NODE_OPTIONS=--max-old-space-size=6144
     volumes:
       - ./n8n_data:/home/node/.n8n
     depends_on:
@@ -19,14 +18,26 @@ services:
     image: ollama/ollama:latest
     restart: always
     ports:
-      - "11434:11434"   # Ollama API
+      - "11434:11434"
     volumes:
-      - ollama_data:/root/.ollama   # persist pulled models
+      - ollama_data:/root/.ollama
+    networks:
+      - n8n-net
+
+  huggingface:
+    image: ghcr.io/huggingface/text-generation-inference:latest
+    platform: linux/amd64
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - huggingface_data:/data
     networks:
       - n8n-net
 
 volumes:
   ollama_data:
+  huggingface_data:
 
 networks:
   n8n-net:
