@@ -1,0 +1,264 @@
+Title: Request Normalizer
+
+Collection: Request_Normalizer
+
+Retrieve Always
+
+------------------------------------------------------------
+### START SECTION: Project Context
+
+This project is an AI-driven scheduling system that organizes learners into cohorts and subgroups, assigns them to programs, and creates schedules made of periods (teaching sessions).
+The AI agents work together to transform user requests into valid SQL queries that interact with a PostgreSQL scheduler database.
+
+The database has strict schemas that must always be respected.
+
+### END SECTION: Project Context
+------------------------------------------------------------
+
+### START SECTION: Program (public.program)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+
+Purpose: Represents a course or curriculum.
+
+Example user language (illustrative only – do not use directly in output):
+* “Data Science 101”
+* “List all available programs”
+* “Show me programs about artificial intelligence”
+
+### END SECTION: Program (public.program)
+------------------------------------------------------------
+
+### START SECTION: Cohort (public.cohort)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* program_id → INTEGER REFERENCES public.program(id)
+
+Purpose: Represents a group of learners grouped by intake or batch.
+
+Example user language (illustrative only – do not use directly in output):
+* “Cohort 1”
+* “List all cohorts currently in the system”
+* “Show me which cohorts are linked to the Summer Bootcamp”
+
+### END SECTION: Cohort (public.cohort)
+------------------------------------------------------------
+
+### START SECTION: Cohort Subgroup (public.cohort_subgroup)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* cohort_id → INTEGER NOT NULL REFERENCES public.cohort(id)
+
+Purpose: Subdivisions inside a cohort (smaller learner groups).
+
+Example user language (illustrative only – do not use directly in output):
+* “Subgroup A in Cohort 1”
+* “List all subgroups in Cohort 2”
+* “Count how many subgroups are in Cohort 3”
+
+### END SECTION: Cohort Subgroup (public.cohort_subgroup)
+------------------------------------------------------------
+
+### START SECTION: Schedule (public.schedule)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* program_id → INTEGER REFERENCES public.program(id)
+* cohort_id → INTEGER REFERENCES public.cohort(id)
+* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+
+Purpose: A planned timetable for a program within a cohort or subgroup.
+
+Example user language (illustrative only – do not use directly in output):
+* “Schedule for Cohort 1”
+* “Show me the plan for Program 2”
+* “Create a new schedule for Cohort 3”
+
+### END SECTION: Schedule (public.schedule)
+------------------------------------------------------------
+
+### START SECTION: Schedule Item (public.schedule_item)
+
+* id → SERIAL PRIMARY KEY
+* schedule_id → INTEGER NOT NULL REFERENCES public.schedule(id)
+* program_id → INTEGER REFERENCES public.program(id)
+* period_id → INTEGER REFERENCES public.period(id)
+* cohort_id → INTEGER REFERENCES public.cohort(id)
+* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* start_date → TIMESTAMP NOT NULL
+* end_date → TIMESTAMP NOT NULL
+
+Purpose: Represents individual teaching sessions (time slots within a schedule).
+
+Example user language (illustrative only – do not use directly in output):
+* “A session from 9am–11am”
+* “Add sessions to Cohort 2’s schedule”
+* “Generate a 2-week plan for each cohort”
+
+### END SECTION: Schedule Item (public.schedule_item)
+------------------------------------------------------------
+
+### START SECTION: Period (public.period)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* instructor_id → INTEGER REFERENCES public.user(id)
+* location_url → VARCHAR(512)
+* capacity → INTEGER
+* category → period_category NOT NULL (ENUM: virtual_reality, face_to_face, assessment, learning_course, other)
+
+Purpose: Defines the actual teaching session (lesson, workshop, or assessment).
+
+Example user language (illustrative only – do not use directly in output):
+* “VR session with capacity 20”
+* “List all face-to-face lessons”
+* “Show me assessments available for Program 3”
+
+### END SECTION: Period (public.period)
+------------------------------------------------------------
+
+### START SECTION: User (public.user)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* email → VARCHAR(255) NOT NULL UNIQUE
+* role_id → INTEGER NOT NULL REFERENCES public.system_role(id)
+* cohort_id → INTEGER REFERENCES public.cohort(id)
+* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* status → user_status NOT NULL (ENUM: active, inactive)
+
+Purpose: Represents all system users (admins, instructors, learners).
+
+Example user language (illustrative only – do not use directly in output):
+* “Active learners in Cohort 2”
+* “List all instructors”
+* “Show me users in Subgroup A”
+* “Get all users that belong to teaching roles” (→ instructor, visiting_instructor, replacement_instructor)
+
+### END SECTION: User (public.user)
+------------------------------------------------------------
+
+### START SECTION: System Role (public.system_role)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* code → role_code NOT NULL (ENUM: admin, instructor, learner, replacement_instructor, visiting_instructor)
+
+Purpose: Defines role types for users.
+
+Example user language (illustrative only – do not use directly in output):
+* “Learners” refers to users with code = learner
+* “List all role types”
+* “Show me users that have the instructor role”
+* “Return everyone in teaching positions” (→ instructor, visiting_instructor, replacement_instructor)
+
+### END SECTION: System Role (public.system_role)
+------------------------------------------------------------
+
+### START SECTION: ENUM Types
+
+* role_code → admin, instructor, learner, replacement_instructor, visiting_instructor
+* user_status → active, inactive
+* period_category → virtual_reality, face_to_face, assessment, learning_course, other
+
+### END SECTION: ENUM Types
+------------------------------------------------------------
+
+### START SECTION: Purpose
+
+The normalizer converts unstructured or casual user input into normalized, schema-aware requests.
+By rewriting vague messages into precise task instructions, it ensures downstream agents always work with consistent and database-valid terminology.
+
+### END SECTION: Purpose
+------------------------------------------------------------
+
+### START SECTION: How It Works
+
+1. Interpret the user’s natural language input.
+2. Normalize terminology and phrases into schema-aware expressions.
+3. Output two fields:
+   * originalPrompt → the user’s raw message.
+   * normalizedPrompt → the rewritten message, using proper DB terms and conventions.
+
+### END SECTION: How It Works
+------------------------------------------------------------
+
+### START SECTION: Normalization Rules
+
+1. Roles
+* Convert role names into their system_role.code values:
+  - “instructor” → instructor
+  - “visiting instructor” → visiting_instructor
+  - “replacement instructor” → replacement_instructor
+  - “all teaching roles” → instructor, visiting_instructor, replacement_instructor
+  - “learner” → learner
+  - “admin” → admin
+
+2. Tables
+* “users” → public.user
+* “roles” → public.system_role
+* “cohorts” → public.cohort
+* “subgroups” → public.cohort_subgroup
+* “programs” or “courses” → public.program
+* “schedules” → public.schedule
+* “sessions / classes / timetable items” → public.schedule_item
+* “periods / lessons” → public.period
+
+3. Consistency
+* Always lowercase table names.
+* Always use underscores instead of spaces (e.g., visiting instructor → visiting_instructor).
+* Always preserve schema context (public.<table>).
+
+### END SECTION: Normalization Rules
+------------------------------------------------------------
+
+### START SECTION: Example Transformations
+
+(Important: These are **illustrations only**. They show format and intent but must never be directly copied as output.)
+
+* User says:
+  “Get me all types of instructors.”
+  → Normalized:
+  “Return the names of all users in public.user that are linked to public.system_role entries with code values instructor, visiting_instructor, and replacement_instructor.”
+
+* User says:
+  “Show me cohorts and how many learners are in each subgroup.”
+  → Normalized:
+  “Return all records from public.cohort with their related public.cohort_subgroup entries and counts of users from public.user grouped by subgroup.”
+
+* User says:
+  “List the courses.”
+  → Normalized:
+  “Return all records from public.program with their names and descriptions.”
+
+* User says:
+  “Get all users that belong to teaching roles.”
+  → Normalized:
+  “Return all records from public.user that are linked to public.system_role entries with code values instructor, visiting_instructor, and replacement_instructor.”
+
+* User says:
+  “Which cohorts have active learners?”
+  → Normalized:
+  “Return all records from public.cohort where public.user entries linked to them have status = active and role code = learner.”
+
+### END SECTION: Example Transformations
+------------------------------------------------------------
+
+### START SECTION: Why It Matters
+
+* Removes ambiguity.
+* Ensures all downstream SQL queries align with the actual schema.
+* Prevents vague terms like “instructors” or “teaching roles” from being misinterpreted.
+* Provides consistency in how requests are expressed.
+* Guarantees that downstream agents always work with schema-valid terminology.
+
+### END SECTION: Why It Matters
+------------------------------------------------------------

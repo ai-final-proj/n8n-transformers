@@ -1,0 +1,88 @@
+Title: General AI Rules
+
+Collection: Policies_And_Structure
+
+Retrieve Always
+
+------------------------------------------------------------
+### START SECTION: Purpose
+
+These rules ensure all AI Agents behave consistently and safely when interacting with the PostgreSQL scheduler database.  
+They define strict boundaries for SQL generation, tool usage, normalization, and message passing.  
+
+### END SECTION: Purpose
+------------------------------------------------------------
+
+### START SECTION: Core Rules
+
+1. Table and Column Usage  
+* Always use exact table and column names from the provided schema.  
+* Never invent or hallucinate tables, columns, or values.  
+* Always prefix with public. (e.g., public.user, public.cohort).  
+* Do not assume relationships unless explicitly defined in the schema.  
+* When multiple tables have similar column names (e.g., name, description), always qualify with the table alias or prefix to avoid ambiguity.  
+
+2. Query Execution  
+* Only one SQL query per turn.  
+* Never chain queries in a single execution.  
+* If multiple queries are needed, execute them in sequence across turns.  
+* INSERT operations must always be treated as trial runs with rollback first.  
+* UPDATE and DELETE operations must explicitly log which rows are targeted by ID to avoid silent data corruption.  
+
+3. System Messages  
+* System_Message must never be empty.  
+* Always include:  
+  - generalSystemRules (textual rules passed from previous agents).  
+  - databaseTableSchema (structured schema info from previous agents).  
+* If retriever returns partial or incomplete schema/rules, request again until full coverage is obtained.  
+
+4. Outputs  
+* Always return outputs as valid JSON with exactly the properties required by each Agent.  
+* Never include tool call syntax, explanations, or raw execution logs in the output.  
+* If required data is missing, use placeholders (<program_id>, <period_id>) and explain them in the summary.  
+* Ensure JSON is strictly valid (double quotes, no trailing commas). Non-JSON responses are not allowed.  
+
+5. Retrieve Always Sections  
+* Must always be included, regardless of user input.  
+Examples:  
+* Insert Schedule Rules.  
+* Mandatory constraints.  
+* Schema usage notes.  
+* Always fetch ENUM definitions (role_code, user_status, period_category) since they are critical for validation.  
+
+6. Role and User Handling  
+* Roles must always be resolved via:  
+  public.user.role_id = public.system_role.id  
+* Filter by system_role.code.  
+* Codes include: admin, instructor, learner, replacement_instructor, visiting_instructor.  
+* “Teaching roles” must always normalize to (instructor, visiting_instructor, replacement_instructor).  
+
+7. Status Handling  
+* User and schedule status fields accept only active or inactive.  
+* Always filter with valid status values where relevant.  
+* Default to status = active if the user request is vague about status.  
+
+### END SECTION: Core Rules
+------------------------------------------------------------
+
+### START SECTION: Error Handling
+
+* If a query fails due to missing schema elements, return:  
+  - A summary explaining what is missing.  
+  - A query with placeholders for missing IDs/values.  
+* Never attempt to fix schema errors by fabricating columns or changing structure.  
+* If the same error repeats more than once, escalate by explicitly marking the error as “unresolvable with current schema.”  
+
+### END SECTION: Error Handling
+------------------------------------------------------------
+
+### START SECTION: Why These Rules Matter
+
+* Prevents invalid or fabricated SQL queries.  
+* Ensures downstream execution agents always receive consistent, database-valid queries.  
+* Guarantees transparency between natural language requests and schema-aware outputs.  
+* Creates a stable foundation for schedule generation, role resolution, and learner management.  
+* Enforces reliability by making the system self-check and re-request schema/rules when incomplete.  
+
+### END SECTION: Why These Rules Matter
+------------------------------------------------------------

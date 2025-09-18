@@ -1,0 +1,232 @@
+Title: Database Structure
+
+Collection: Policies_And_Structure
+
+Retrieve Always
+
+------------------------------------------------------------
+### START SECTION: Document Overview
+
+This database is designed for a program scheduling system.  
+It organizes learners into cohorts and subgroups, manages programs and schedules, defines periods of teaching, and tracks all users and their roles.  
+The database enforces strict conventions using enums for roles, statuses, and categories, ensuring consistency and valid data entry.
+
+### END SECTION: Document Overview
+------------------------------------------------------------
+
+### START SECTION: Program (public.program)
+
+* id → SERIAL PRIMARY KEY  
+* name → VARCHAR(255) NOT NULL  
+* description → TEXT  
+
+Purpose: Represents a course or curriculum.  
+
+Example user language:  
+* “Data Science 101”  
+* “List all available programs”  
+* “Show me programs about machine learning”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.program;  
+* SELECT * FROM public.program WHERE name = 'Data Science 101';  
+* SELECT id, name FROM public.program WHERE description ILIKE '%machine learning%';
+
+### END SECTION: Program (public.program)
+------------------------------------------------------------
+
+### START SECTION: Cohort (public.cohort)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* program_id → INTEGER REFERENCES public.program(id)
+
+Purpose: Represents a group of learners grouped by intake or batch.
+
+Example user language:
+* “Cohort 1”
+* “List all cohorts”
+* “Show me cohorts for the Summer Bootcamp”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.cohort;
+* SELECT * FROM public.cohort WHERE id = 1;
+* SELECT name FROM public.cohort WHERE program_id = (SELECT id FROM public.program WHERE name = 'Summer Bootcamp - ML & DS - 2025');
+
+### END SECTION: Cohort (public.cohort)
+------------------------------------------------------------
+
+### START SECTION: Cohort Subgroup (public.cohort_subgroup)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* cohort_id → INTEGER NOT NULL REFERENCES public.cohort(id)
+
+Purpose: Subdivisions inside a cohort (smaller learner groups).
+
+Example user language:
+* “Subgroup A in Cohort 1”
+* “List all subgroups in Cohort 2”
+* “Show me subgroup names for Cohort 3”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.cohort_subgroup;
+* SELECT * FROM public.cohort_subgroup WHERE cohort_id = 1;
+* SELECT name FROM public.cohort_subgroup WHERE name ILIKE '%A%';
+
+### END SECTION: Cohort Subgroup (public.cohort_subgroup)
+------------------------------------------------------------
+
+### START SECTION: Schedule (public.schedule)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* program_id → INTEGER REFERENCES public.program(id)
+* cohort_id → INTEGER REFERENCES public.cohort(id)
+* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+
+Purpose: A planned timetable for a program within a cohort or subgroup.
+
+Example user language:
+* “Schedule for Cohort 1”
+* “Show me the plan for Program 2”
+* “Create a schedule plan for each cohort found in the system”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.schedule;
+* SELECT * FROM public.schedule WHERE cohort_id = 1;
+* SELECT name, description FROM public.schedule WHERE program_id = 2;
+
+#### SUBSECTION: INSERT Queries
+* INSERT INTO public.schedule (name, description, program_id, cohort_id, subgroup_id)
+  VALUES ('Cohort 1 Schedule', 'Auto-generated schedule', 2, 1, 1);
+
+### END SECTION: Schedule (public.schedule)
+------------------------------------------------------------
+
+### START SECTION: Schedule Item (public.schedule_item)
+
+* id → SERIAL PRIMARY KEY
+* schedule_id → INTEGER NOT NULL REFERENCES public.schedule(id)
+* program_id → INTEGER REFERENCES public.program(id)
+* period_id → INTEGER REFERENCES public.period(id)
+* cohort_id → INTEGER REFERENCES public.cohort(id)
+* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* start_date → TIMESTAMP NOT NULL
+* end_date → TIMESTAMP NOT NULL
+
+Purpose: Represents individual teaching sessions (time slots within a schedule).
+
+Example user language:
+* “A session from 9am–11am”
+* “List all sessions for Schedule 1”
+* “Add a 2-week block of sessions for Cohort 2”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.schedule_item;
+* SELECT * FROM public.schedule_item WHERE schedule_id = 1;
+* SELECT start_date, end_date FROM public.schedule_item WHERE period_id = 3;
+
+#### SUBSECTION: INSERT Queries
+* INSERT INTO public.schedule_item (schedule_id, program_id, period_id, cohort_id, subgroup_id, start_date, end_date)
+  VALUES (1, 2, 3, 1, 1, '2025-09-01 09:00:00', '2025-09-01 11:00:00');
+
+### END SECTION: Schedule Item (public.schedule_item)
+------------------------------------------------------------
+
+### START SECTION: Period (public.period)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* instructor_id → INTEGER REFERENCES public.user(id)
+* location_url → VARCHAR(512)
+* capacity → INTEGER
+* category → period_category NOT NULL (ENUM: virtual_reality, face_to_face, assessment, learning_course, other)
+
+Purpose: Defines the actual teaching session (lesson, workshop, or assessment).
+
+Example user language:
+* “VR session with capacity 20”
+* “List all periods assigned to Instructor 5”
+* “Show me face-to-face lessons for Cohort 3”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.period;
+* SELECT * FROM public.period WHERE category = 'virtual_reality';
+* SELECT name, capacity FROM public.period WHERE instructor_id = 5;
+
+### END SECTION: Period (public.period)
+------------------------------------------------------------
+
+### START SECTION: User (public.user)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* email → VARCHAR(255) NOT NULL UNIQUE
+* role_id → INTEGER NOT NULL REFERENCES public.system_role(id)
+* cohort_id → INTEGER REFERENCES public.cohort(id)
+* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* status → user_status NOT NULL (ENUM: active, inactive)
+
+Purpose: Represents all system users (admins, instructors, learners).
+
+Example user language:
+* “Active learners in Cohort 2”
+* “List all instructors”
+* “Show me learners in Subgroup B of Cohort 1”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.user;
+* SELECT name FROM public.user WHERE status = 'active';
+* SELECT u.* FROM public.user u JOIN public.system_role r ON u.role_id = r.id WHERE r.code = 'learner' AND u.cohort_id = 2;
+
+### END SECTION: User (public.user)
+------------------------------------------------------------
+
+### START SECTION: System Role (public.system_role)
+
+* id → SERIAL PRIMARY KEY
+* name → VARCHAR(255) NOT NULL
+* description → TEXT
+* code → role_code NOT NULL (ENUM: admin, instructor, learner, replacement_instructor, visiting_instructor)
+
+Purpose: Defines role types for users.
+
+Example user language:
+* “Learners” refers to users with code = learner
+* “List all role types”
+* “Show me users that have the instructor role”
+
+#### SUBSECTION: SELECT Queries
+* SELECT * FROM public.system_role;
+* SELECT * FROM public.system_role WHERE code = 'instructor';
+* SELECT id, code FROM public.system_role WHERE code IN ('replacement_instructor','visiting_instructor');
+
+### END SECTION: System Role (public.system_role)
+------------------------------------------------------------
+
+### START SECTION: ENUM Types
+
+* role_code → admin, instructor, learner, replacement_instructor, visiting_instructor  
+* user_status → active, inactive  
+* period_category → virtual_reality, face_to_face, assessment, learning_course, other  
+
+### END SECTION: ENUM Types
+------------------------------------------------------------
+
+### START SECTION: Retrieve Always – Schedule Creation Rules
+
+When creating a schedule, the AI must always retrieve and consider:  
+* Available cohorts without an existing schedule.  
+* Programs currently in the database.  
+* Available periods (capacity, category, instructor assignment).  
+* Cohort subgroups and their user counts.  
+* Linked tables (public.schedule, public.schedule_item, public.cohort, public.program, public.period, public.user, public.system_role).  
+
+Purpose: To ensure that any proposed INSERT into schedule or schedule_item respects existing schema, avoids duplicates, and aligns with available cohorts, programs, and periods.
+
+### END SECTION: Retrieve Always – Schedule Creation Rules
+------------------------------------------------------------

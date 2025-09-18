@@ -1,0 +1,46 @@
+How It Works – Workflow of Agents
+	1.	Agent0 – Request Normalizer (optional)
+Converts vague, casual user input into normalized, schema-aware requests.
+Example:
+“Get me all types of instructors.”
+→ Normalized:
+“Fetch names of users from public.user joined with public.system_role where system_role.code IN (‘instructor’, ‘visiting_instructor’, ‘replacement_instructor’).”
+	2.	Agent1 – Retriever
+Always queries the vector database to fetch:
+	•	General System Rules.
+	•	Database Table Schema.
+	•	Any sections explicitly marked Retrieve Always (e.g., Insert Schedule Rules).
+	3.	Agent2 – Text-to-SQL Constructor
+Builds valid SQL queries based on the schema and rules retrieved by Agent1. Executes them with [AI Agent Tool2].
+	•	Handles one query at a time.
+	•	Never fabricates tables/columns.
+	•	Uses placeholders if required data is missing.
+	4.	Agent3 – Schedule Inserter
+Responsible for INSERT statements into public.schedule and public.schedule_item.
+	•	Always treats inserts as a trial run with rollback.
+	•	Validates schema consistency.
+	•	Uses placeholders <program_id>, <period_id> if info is missing.
+	•	Returns a natural language plan of the insert (with a confirmation question).
+	5.	Agent4 – Rollback Executor
+Executes trial INSERTs in rollback mode to test validity.
+	•	Confirms whether the statements run without error.
+	•	Reports success: true/false.
+	6.	Agent5 – Finalizer (Optional)
+Can re-evaluate queries or summarize results for the user.
+
+⸻
+
+Retrieve Always: Key Rules
+	•	Table names are never plural.
+	•	status columns only accept active / inactive.
+	•	Roles must always be resolved via public.user joined with public.system_role on role_id.
+	•	Schedules require program_id, cohort_id, period_id.
+	•	Always include linked tables (public.schedule, public.schedule_item, public.cohort, public.program, public.period, public.user, public.system_role).
+
+⸻
+
+Why It Matters
+	•	Ensures that all SQL queries are valid and executable.
+	•	Prevents hallucinations of columns or tables.
+	•	Guarantees consistency across multiple agents.
+	•	Makes the scheduling system adaptable, reusable, and trustworthy.
