@@ -753,7 +753,7 @@ async function (content) {
 
 const client = new OpenAI({
 	baseURL: "https://router.huggingface.co/v1",
-	apiKey: "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",
+	apiKey: process.env.HF_API_KEY,
 });
 
 const chatCompletion = 
@@ -785,7 +785,7 @@ is the method above wrong
 
 // const client = new OpenAI({
 // 	baseURL: "https://router.huggingface.co/v1",
-// 	apiKey: "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",
+// 	apiKey: process.env.HF_API_KEY,
 // });
 
 // const chatCompletion =   // ERROR: Incomplete assignment
@@ -798,7 +798,7 @@ const OpenAI = require('openai');
 
 const client = new OpenAI({
     baseURL: "https://router.huggingface.co/v1",
-    apiKey: "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",
+    apiKey: process.env.HF_API_KEY,
 });
 
 async function generateCompletion(content) {
@@ -845,7 +845,7 @@ const OpenAI = require('openai');
 
 const client = new OpenAI({
     baseURL: "https://router.huggingface.co/v1",
-    apiKey: "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",
+    apiKey: process.env.HF_API_KEY,
 });
 
 async function generateCompletion(content) {
@@ -938,7 +938,7 @@ const OpenAI = require('openai');
 
 const client = new OpenAI({
     baseURL: "https://router.huggingface.co/v1",
-    apiKey: "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",
+    apiKey: process.env.HF_API_KEY,
 });
 
 async function generateCompletion(content) {
@@ -984,7 +984,7 @@ const OpenAI = require('openai');
 
 const client = new OpenAI({
     baseURL: "https://router.huggingface.co/v1",
-    apiKey: "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",
+    apiKey: process.env.HF_API_KEY,
 });
 
 async function generateCompletion(content) {
@@ -4091,4 +4091,3 @@ def main(input_data):
 
     return main($input.all())
 ```
-

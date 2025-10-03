@@ -4,9 +4,16 @@
 
 const OpenAI = require('openai');
 
+const baseURL = process.env.HF_API_BASE_URL || "https://router.huggingface.co/v1";
+const apiKey = process.env.HF_API_KEY;
+
+if (!apiKey) {
+    throw new Error('Missing Hugging Face API key. Set the HF_API_KEY environment variable or configure n8n credentials.');
+}
+
 const client = new OpenAI({
-    baseURL: "https://router.huggingface.co/v1",
-    apiKey: "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",
+    baseURL,
+    apiKey,
 });
 
 async function generateCompletion(content) {
@@ -79,4 +86,3 @@ return (async () => {
 
     return [{ json: result }];
 })();
-
