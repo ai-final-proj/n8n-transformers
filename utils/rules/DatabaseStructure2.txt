@@ -1,0 +1,139 @@
+BEGIN_SCHEMA_DOC
+# ------------------------
+# TABLE: user
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - name: { type: varchar, nullable: false, description: "Full name of the user" }
+  - email: { type: varchar, nullable: false, description: "Unique email address" }
+  - role_id: { type: integer, nullable: false, description: "FK to system_role.id" }
+  - cohort_id: { type: integer, nullable: true, description: "FK to cohort.id" }
+  - cohort_subgroup_id: { type: integer, nullable: true, description: "FK to cohort_subgroup.id" }
+
+foreign_keys:
+  - { from: role_id, to_table: system_role, to_column: id }
+  - { from: cohort_id, to_table: cohort, to_column: id }
+  - { from: cohort_subgroup_id, to_table: cohort_subgroup, to_column: id }
+
+---
+
+## NOTE: The following sections describe tables and relationships only.
+## Do not treat any narrative notes as mandatory query rules.
+## All query constraints live in the SELECT rules file.
+
+# ------------------------
+# TABLE: system_role
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - code: { type: varchar, nullable: false, description: "Unique role identifier (e.g., instructor, learner)" }
+  - name: { type: varchar, nullable: false, description: "Role name" }
+
+foreign_keys: []
+
+---
+
+# ------------------------
+# TABLE: program
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - name: { type: varchar, nullable: true, description: "Program title" }
+
+foreign_keys: []
+
+---
+
+# ------------------------
+# TABLE: cohort
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - program_id: { type: integer, nullable: true, description: "FK to program.id" }
+  - name: { type: varchar, nullable: false, description: "Cohort name" }
+
+foreign_keys:
+  - { from: program_id, to_table: program, to_column: id }
+
+---
+
+# ------------------------
+# TABLE: cohort_subgroup
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - cohort_id: { type: integer, nullable: true, description: "FK to cohort.id" }
+  - name: { type: varchar, nullable: false, description: "Subgroup name" }
+
+foreign_keys:
+  - { from: cohort_id, to_table: cohort, to_column: id }
+
+---
+
+# ------------------------
+# TABLE: schedule
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - program_id: { type: integer, nullable: true, description: "FK to program.id" }
+  - cohort_id: { type: integer, nullable: true, description: "FK to cohort.id" }
+  - cohort_subgroup_id: { type: integer, nullable: true, description: "FK to cohort_subgroup.id" }
+  - name: { type: varchar, nullable: false, description: "Schedule title" }
+
+foreign_keys:
+  - { from: program_id, to_table: program, to_column: id }
+  - { from: cohort_id, to_table: cohort, to_column: id }
+  - { from: cohort_subgroup_id, to_table: cohort_subgroup, to_column: id }
+
+---
+
+# ------------------------
+# TABLE: period
+# ------------------------
+schema: public
+
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - schedule_id: { type: integer, nullable: true, description: "FK to schedule.id" }
+  - period_start_date: { type: date, nullable: false, description: "Start date of the period" }
+  - period_end_date: { type: date, nullable: false, description: "End date of the period" }
+  - instructor_id: { type: integer, nullable: true, description: "FK to user.id" }
+
+foreign_keys:
+  - { from: schedule_id, to_table: schedule, to_column: id }
+  - { from: instructor_id, to_table: user, to_column: id }
+
+---
+
+# ------------------------
+# NAMING CONVENTIONS
+# ------------------------
+
+- Table names are always **singular**, lowercase, and prefixed with `public.` when used in SQL.
+- All primary keys are named `id`.
+- All foreign keys follow the pattern `<referenced_table>_id`.
+- All role logic must use `system_role.code` — never compare `role_id` directly to integers.
+- Use `snake_case` for all column names.
+
+---
+
+# ------------------------
+# SCHEMA NOTES (NON-BINDING)
+# ------------------------
+
+- Role codes may be stored in `system_role.code`.
+- Treat this as reference data, not a mandatory filter policy.
+- Query constraints are defined in the SELECT rules file and override any notes here.
+END_SCHEMA_DOC

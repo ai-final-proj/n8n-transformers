@@ -1,0 +1,258 @@
+BEGIN_SECTION: META
+title: SQL Query Construction Rules (SELECT-only)
+collection: SQL_SELECT_QUERY_RULES
+canonical_id: SQL.SELECT.RULES.V1
+scope: PostgreSQL (read-only)
+audience: LLMs and developers generating SQL
+retrieval_priority: high
+tags: [select, postgres, joins, filtering, aggregation, cte, union, safety]
+END_SECTION
+
+BEGIN_SECTION: SCOPE_AND_INTENT
+These instructions govern generation of PostgreSQL SELECT statements only.
+They are optimized for Retrieval-Augmented Generation (RAG) with clear BEGIN/END
+markers per section to support chunk-level retrieval.
+
+Goals:
+- Produce syntactically valid, safe, single-statement SELECT queries.
+- Ensure explicit column selection, qualified tables, and correct joins.
+- Prefer attribute-based filtering via reference tables (e.g., public.product_category.type) where applicable.
+
+Non-goals:
+- No INSERT/UPDATE/DELETE/TRUNCATE/DDL.
+- No multi-statement batches or procedural code.
+END_SECTION
+
+BEGIN_SECTION: GLOBAL_CONSTRAINTS
+- Allowed statement: SELECT (including CTEs via WITH).
+- SQL dialect: PostgreSQL.
+- Single executable statement only. If multiple result sources are needed,
+  combine with CTEs or UNION/UNION ALL.
+- No side effects (no writes, temp tables, or volatile functions that mutate state).
+- If the natural-language goal requests INSERT/UPDATE/DELETE, surface the intent via read-only
+  SELECT output (e.g., plan rows) instead of emitting mutating SQL.
+END_SECTION
+
+BEGIN_SECTION: MULTI_ITEM_PACKAGING
+- For prompts with multiple items, return one SELECT that packages results per item key.
+- Pattern: define one CTE per item (item_1, item_2, ...). In the final SELECT produce
+  `jsonb_build_object('item_1', (SELECT COALESCE(jsonb_agg(i1), '[]'::jsonb) FROM item_1 i1), ...) AS dbResponse`.
+- Also return a `summary` object capturing lightweight metadata (e.g., row counts) so downstream tools can report progress.
+- Avoid multiple top-level statements; keep everything within one WITH ... SELECT and wrap the whole statement between BEGIN_SQL/END_SQL markers.
+- Do not fabricate sample result arrays outside of the SQL statement; downstream systems execute the SQL to obtain real data.
+END_SECTION
+
+BEGIN_SECTION: CTE_STRUCTURE
+- Use exactly one WITH (optionally WITH RECURSIVE) per query.
+- Declare all CTEs comma-separated in that single WITH block:
+  WITH item_1 AS (...), item_2 AS (...), item_3 AS (...)
+- Follow with one final SELECT only (no additional SELECTs before/after).
+- Do not repeat the WITH keyword; do not place semicolon-separated statements.
+END_SECTION
+
+BEGIN_SECTION: OUTPUT_MARKERS
+- Wrap the final SQL in explicit markers for extraction:
+  BEGIN_SQL
+  <single PostgreSQL SELECT statement>
+  END_SQL
+- Do not emit any prose outside these markers.
+END_SECTION
+
+BEGIN_SECTION: INJECTION_SAFETY
+- The injected rules content must not contain executable SQL. If example SQL appears, treat it as non-executable examples only.
+- Do not mirror or concatenate example SQL from rules into the final output.
+- Emit exactly one SELECT; avoid semicolons (;) unless inside string literals.
+- Do not escape newlines (no \n, \t); output plain SQL.
+END_SECTION
+
+BEGIN_SECTION: NAMING_AND_QUALIFICATION
+- Always fully qualify tables with schema prefix: public.<table> (e.g., public.product).
+- Use short, meaningful table aliases (e.g., product p, product_category c).
+- Fully qualify columns when ambiguity is possible (e.g., p.id, c.id).
+- Use singular identifiers per schema conventions: tables (e.g., public.product) and columns (e.g., name). Do not pluralize.
+- Only reference columns that exist in the known schema.
+- The table storing people is public."user" (quoted because user is reserved). Never refer to it as public.users.
+END_SECTION
+
+BEGIN_SECTION: COLUMN_SELECTION
+- Never use SELECT *. Explicitly list required columns only.
+- Prefer readable output aliases using AS (e.g., p.id AS product_id).
+- Ensure output column names are consistent and stable for downstream use.
+- Do not invent columns; select only identifiers documented in the schema or injected policies.
+END_SECTION
+
+BEGIN_SECTION: JOIN_STRATEGY
+- Use explicit JOIN syntax only (INNER JOIN, LEFT JOIN, etc.).
+- Join conditions must reflect declared foreign keys or documented relationships.
+- Avoid implicit joins (comma-separated FROM or WHERE-only joins).
+- Place join predicates in ON; keep additional filters in WHERE (post-join).
+END_SECTION
+
+BEGIN_SECTION: ROLE_BASED_FILTERING
+- Resolve user roles by joining public."user" u to public.system_role r ON u.role_id = r.id.
+- Filter roles using r.code (e.g., r.code = 'instructor'). Do not compare role_id to string literals.
+- When returning instructors or learners, select stable columns such as u.id AS user_id and u.name AS user_name.
+- If multiple role codes are requested, use parameterized IN lists (e.g., r.code = ANY($1)).
+END_SECTION
+
+BEGIN_SECTION: COHORT_AND_SUBGROUP_METRICS
+- To count learners per cohort subgroup, join:
+  public.cohort c
+  LEFT JOIN public.cohort_subgroup cs ON cs.cohort_id = c.id
+  LEFT JOIN public."user" u ON u.cohort_subgroup_id = cs.id
+  LEFT JOIN public.system_role r ON r.id = u.role_id AND r.code = 'learner'
+- Use COUNT(u.id) filtered by learner role to compute learner totals per subgroup.
+- Select descriptive columns: c.id AS cohort_id, c.name AS cohort_name, cs.id AS cohort_subgroup_id,
+  cs.name AS cohort_subgroup_name, COUNT(u.id) AS learner_count.
+- GROUP BY every non-aggregated column (cohort/subgroup identifiers and names).
+END_SECTION
+
+BEGIN_SECTION: SCHEDULE_PLANNING
+- Schedules reside in public.schedule with optional links to cohorts, subgroups, and programs.
+- When asked to "create" schedules within a read-only workflow, emit planning rows that describe
+  the desired insert (e.g., SELECT c.id AS cohort_id, c.name AS cohort_name, c.name || ' schedule' AS proposed_schedule_name).
+- Include existing schedule metadata when available by LEFT JOIN public.schedule so downstream automation can decide whether to insert or update.
+- Alias intent columns clearly (e.g., plan_action, plan_details, existing_schedule_id) so later steps can interpret them.
+END_SECTION
+
+BEGIN_SECTION: FILTERING
+- Match data types in predicates (id = 123, not id = '123').
+- Use IS NOT NULL for presence checks; prefer COALESCE in aggregates when needed.
+- For case-insensitive search, prefer ILIKE with parameterized patterns.
+- For time filters, use explicit ranges (created_at >= $1 AND created_at < $2)
+  and keep everything in UTC where applicable.
+END_SECTION
+
+BEGIN_SECTION: AGGREGATIONS_AND_GROUPING
+- When using aggregates (COUNT, SUM, MAX, etc.), include a correct GROUP BY for
+  every selected non-aggregated column.
+- Alias all aggregated outputs (e.g., COUNT(*) AS total_users).
+- Use HAVING for post-aggregation filters.
+END_SECTION
+
+BEGIN_SECTION: UNION_COMPATIBILITY
+- For UNION/UNION ALL, each branch must:
+  - Select the same number of columns in the same order.
+  - Use compatible data types per column position.
+  - Use consistent output aliases.
+- Use NULL::type to pad missing columns where necessary.
+END_SECTION
+
+BEGIN_SECTION: CTE_USAGE
+- Use WITH (CTEs) to break down complex logic into readable steps.
+- Keep CTE chains shallow and purposeful; avoid unnecessary nesting.
+- Name CTEs descriptively; reference them exactly once where possible.
+END_SECTION
+
+BEGIN_SECTION: OUTPUT_FORMAT
+- Wrap the entire statement between BEGIN_SQL/END_SQL markers.
+- Final shape must resemble:
+  BEGIN_SQL
+  WITH item_1 AS (...), item_2 AS (...)
+  SELECT
+    jsonb_build_object(
+      'item_1', (SELECT COALESCE(jsonb_agg(i1), '[]'::jsonb) FROM item_1 i1),
+      'item_2', (SELECT COALESCE(jsonb_agg(i2), '[]'::jsonb) FROM item_2 i2)
+    ) AS dbResponse,
+    jsonb_build_object(
+      'item_1', jsonb_build_object('row_count', (SELECT COUNT(*) FROM item_1)),
+      'item_2', jsonb_build_object('row_count', (SELECT COUNT(*) FROM item_2))
+    ) AS summary
+  END_SQL
+- Return structured rows suitable for downstream processing and keep column aliases stable.
+- Only add ORDER BY or LIMIT/OFFSET when explicitly required or implied, and prefer indexed keys (e.g., created_at, id).
+END_SECTION
+
+BEGIN_SECTION: SECURITY_AND_SAFETY
+- Use parameter placeholders ($1, $2, ...) rather than string interpolation.
+- Do not invoke functions or extensions that mutate data/state.
+- Avoid arbitrary EXECUTE or dynamic SQL; keep queries static and typed.
+- Validate identifiers and avoid referencing unknown tables/columns.
+END_SECTION
+
+BEGIN_SECTION: PERFORMANCE_HINTS
+- Project only necessary columns; filter as early as possible.
+- Prefer selective predicates that can use indexes; avoid unbounded ILIKE '%...%'.
+- Use EXISTS over IN for correlated checks on large tables.
+- Avoid SELECT DISTINCT unless required by semantics.
+END_SECTION
+
+BEGIN_SECTION: ERROR_HANDLING_AND_VALIDATION
+- If a referenced column/table is unknown, reconsider the request and consult schema docs.
+- If a type mismatch arises, CAST explicitly and align across UNION branches.
+- Ambiguous column? Qualify with table alias.
+- Empty result sets are acceptable when filters are strict.
+END_SECTION
+
+BEGIN_SECTION: TEMPLATES
+-- Generic pattern (adapt as needed)
+WITH base AS (
+  SELECT
+    t.id AS id,
+    t.col1 AS col1,
+    t.col2 AS col2
+  FROM public.example t
+  WHERE t.is_active = TRUE
+)
+SELECT
+  b.id,
+  b.col1,
+  b.col2
+FROM base b
+-- Optional WHERE, GROUP BY, ORDER BY, LIMIT depending on the request
+;
+
+-- Category filter pattern (domain-neutral)
+SELECT
+  p.id   AS product_id,
+  p.name AS product_name,
+  c.type AS category_type
+FROM public.product p
+JOIN public.product_category c ON c.id = p.category_id
+WHERE c.type = $1
+;
+
+-- Multi-item packaging skeleton (single statement)
+BEGIN_SQL
+WITH
+  item_1 AS (
+    SELECT /* ... */
+  ),
+  item_2 AS (
+    SELECT /* ... */
+  ),
+  item_3 AS (
+    SELECT /* ... */
+  ),
+  item_4 AS (
+    SELECT /* ... */
+  )
+SELECT
+  jsonb_build_object(
+    'item_1', (SELECT COALESCE(jsonb_agg(i1), '[]'::jsonb) FROM item_1 i1),
+    'item_2', (SELECT COALESCE(jsonb_agg(i2), '[]'::jsonb) FROM item_2 i2),
+    'item_3', (SELECT COALESCE(jsonb_agg(i3), '[]'::jsonb) FROM item_3 i3),
+    'item_4', (SELECT COALESCE(jsonb_agg(i4), '[]'::jsonb) FROM item_4 i4)
+  ) AS dbResponse,
+  jsonb_build_object(
+    'item_1', jsonb_build_object('row_count', (SELECT COUNT(*) FROM item_1)),
+    'item_2', jsonb_build_object('row_count', (SELECT COUNT(*) FROM item_2)),
+    'item_3', jsonb_build_object('row_count', (SELECT COUNT(*) FROM item_3)),
+    'item_4', jsonb_build_object('row_count', (SELECT COUNT(*) FROM item_4))
+  ) AS summary
+END_SQL
+END_SECTION
+
+BEGIN_SECTION: ANTI_PATTERNS
+- SELECT *
+- Implicit joins via comma-separated FROM clauses or WHERE-only predicates
+- Providing mock result sets or commentary outside the SQL statement
+- Returning multiple standalone SQL statements
+- Using DISTINCT to hide cartesian products instead of fixing the joins
+END_SECTION
+
+BEGIN_SECTION: GLOSSARY
+- role code: canonical classification string from public.system_role.code
+- cohort subgroup: record from public.cohort_subgroup linked to public.cohort
+- plan_action: textual descriptor indicating what downstream automation should do (e.g., 'insert_schedule')
+END_SECTION

@@ -85,7 +85,7 @@ Example user language:
 * description → TEXT
 * program_id → INTEGER REFERENCES public.program(id)
 * cohort_id → INTEGER REFERENCES public.cohort(id)
-* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* cohort_subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
 
 Purpose: A planned timetable for a program within a cohort or subgroup.
 
@@ -100,7 +100,7 @@ Example user language:
 * SELECT name, description FROM public.schedule WHERE program_id = 2;
 
 #### SUBSECTION: INSERT Queries
-* INSERT INTO public.schedule (name, description, program_id, cohort_id, subgroup_id)
+* INSERT INTO public.schedule (name, description, program_id, cohort_id, cohort_subgroup_id)
   VALUES ('Cohort 1 Schedule', 'Auto-generated schedule', 2, 1, 1);
 
 ### END SECTION: Schedule (public.schedule)
@@ -113,7 +113,7 @@ Example user language:
 * program_id → INTEGER REFERENCES public.program(id)
 * period_id → INTEGER REFERENCES public.period(id)
 * cohort_id → INTEGER REFERENCES public.cohort(id)
-* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* cohort_subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
 * start_date → TIMESTAMP NOT NULL
 * end_date → TIMESTAMP NOT NULL
 
@@ -130,7 +130,7 @@ Example user language:
 * SELECT start_date, end_date FROM public.schedule_item WHERE period_id = 3;
 
 #### SUBSECTION: INSERT Queries
-* INSERT INTO public.schedule_item (schedule_id, program_id, period_id, cohort_id, subgroup_id, start_date, end_date)
+* INSERT INTO public.schedule_item (schedule_id, program_id, period_id, cohort_id, cohort_subgroup_id, start_date, end_date)
   VALUES (1, 2, 3, 1, 1, '2025-09-01 09:00:00', '2025-09-01 11:00:00');
 
 ### END SECTION: Schedule Item (public.schedule_item)
@@ -168,7 +168,7 @@ Example user language:
 * email → VARCHAR(255) NOT NULL UNIQUE
 * role_id → INTEGER NOT NULL REFERENCES public.system_role(id)
 * cohort_id → INTEGER REFERENCES public.cohort(id)
-* subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
+* cohort_subgroup_id → INTEGER REFERENCES public.cohort_subgroup(id)
 * status → user_status NOT NULL (ENUM: active, inactive)
 
 Purpose: Represents all system users (admins, instructors, learners).

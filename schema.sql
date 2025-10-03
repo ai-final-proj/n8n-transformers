@@ -40,10 +40,10 @@ CREATE TABLE schedule (
     description TEXT,
     program_id INT,
     cohort_id INT,
-    subgroup_id INT,
+    cohort_subgroup_id INT,
     FOREIGN KEY (program_id) REFERENCES program(id),
     FOREIGN KEY (cohort_id) REFERENCES cohort(id),
-    FOREIGN KEY (subgroup_id) REFERENCES cohort_subgroup(id)
+    FOREIGN KEY (cohort_subgroup_id) REFERENCES cohort_subgroup(id)
 );
 
 CREATE TABLE system_role (
@@ -65,11 +65,11 @@ CREATE TABLE user (
     email VARCHAR(255) NOT NULL UNIQUE,
     role_id INT NOT NULL,
     cohort_id INT,
-    subgroup_id INT,
+    cohort_subgroup_id INT,
     status ENUM('active', 'inactive') NOT NULL,
     FOREIGN KEY (role_id) REFERENCES system_role(id),
     FOREIGN KEY (cohort_id) REFERENCES cohort(id),
-    FOREIGN KEY (subgroup_id) REFERENCES cohort_subgroup(id)
+    FOREIGN KEY (cohort_subgroup_id) REFERENCES cohort_subgroup(id)
 );
 
 CREATE TABLE period (
@@ -95,14 +95,14 @@ CREATE TABLE schedule_item (
     program_id INT,
     period_id INT,
     cohort_id INT,
-    subgroup_id INT,
+    cohort_subgroup_id INT,
     start_date DATETIME NOT NULL,
     end_date DATETIME NOT NULL,
     FOREIGN KEY (schedule_id) REFERENCES schedule(id),
     FOREIGN KEY (program_id) REFERENCES program(id),
     FOREIGN KEY (period_id) REFERENCES period(id),
     FOREIGN KEY (cohort_id) REFERENCES cohort(id),
-    FOREIGN KEY (subgroup_id) REFERENCES cohort_subgroup(id)
+    FOREIGN KEY (cohort_subgroup_id) REFERENCES cohort_subgroup(id)
 );
 
 -- ====================
@@ -146,7 +146,7 @@ INSERT INTO user (name, email, role_id, status) VALUES
 ('Instructor 005', 'instructor005@example.com', 2, 'active');
 
 -- Learners (50)
-INSERT INTO user (name, email, role_id, status, cohort_id, subgroup_id)
+INSERT INTO user (name, email, role_id, status, cohort_id, cohort_subgroup_id)
 SELECT CONCAT('Learner ', LPAD(n, 3, '0')),
        CONCAT('learner', LPAD(n, 3, '0'), '@example.com'),
        3, -- role_id = Learner
@@ -170,7 +170,7 @@ FROM (
 ) AS numbers;
 
 -- Learners (additional 50) in Cohort 2, Subgroup C
-INSERT INTO user (name, email, role_id, status, cohort_id, subgroup_id)
+INSERT INTO user (name, email, role_id, status, cohort_id, cohort_subgroup_id)
 SELECT CONCAT('Learner_', LPAD(n, 3, '0') + 50),
        CONCAT('learner', LPAD(n, 3, '0') + 50, '@example.com'),
        3, -- learner role_id

@@ -1,0 +1,105 @@
+BEGIN_SCHEMA_DOC
+
+BEGIN_TABLE: public.user
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - name: { type: varchar, nullable: false, description: "Full name" }
+  - email: { type: varchar, nullable: false, description: "Unique email" }
+  - role_id: { type: integer, nullable: false, description: "FK to system_role.id" }
+  - cohort_id: { type: integer, nullable: true, description: "FK to cohort.id" }
+  - cohort_subgroup_id: { type: integer, nullable: true, description: "FK to cohort_subgroup.id" }
+foreign_keys:
+  - { from: role_id, to_table: system_role, to_column: id }
+  - { from: cohort_id, to_table: cohort, to_column: id }
+  - { from: cohort_subgroup_id, to_table: cohort_subgroup, to_column: id }
+END_TABLE
+
+BEGIN_TABLE: public.system_role
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - code: { type: varchar, nullable: false, description: "Role code (e.g., instructor, learner)" }
+  - name: { type: varchar, nullable: false, description: "Role name" }
+foreign_keys: []
+END_TABLE
+
+BEGIN_TABLE: public.program
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - name: { type: varchar, nullable: true, description: "Program title" }
+foreign_keys: []
+END_TABLE
+
+BEGIN_TABLE: public.cohort
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - program_id: { type: integer, nullable: true, description: "FK to program.id" }
+  - name: { type: varchar, nullable: false, description: "Cohort name" }
+foreign_keys:
+  - { from: program_id, to_table: program, to_column: id }
+END_TABLE
+
+BEGIN_TABLE: public.cohort_subgroup
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - cohort_id: { type: integer, nullable: true, description: "FK to cohort.id" }
+  - name: { type: varchar, nullable: false, description: "Subgroup name" }
+foreign_keys:
+  - { from: cohort_id, to_table: cohort, to_column: id }
+END_TABLE
+
+BEGIN_TABLE: public.schedule
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - program_id: { type: integer, nullable: true, description: "FK to program.id" }
+  - cohort_id: { type: integer, nullable: true, description: "FK to cohort.id" }
+  - cohort_subgroup_id: { type: integer, nullable: true, description: "FK to cohort_subgroup.id" }
+  - name: { type: varchar, nullable: false, description: "Schedule title" }
+foreign_keys:
+  - { from: program_id, to_table: program, to_column: id }
+  - { from: cohort_id, to_table: cohort, to_column: id }
+  - { from: cohort_subgroup_id, to_table: cohort_subgroup, to_column: id }
+END_TABLE
+
+BEGIN_TABLE: public.period
+schema: public
+columns:
+  - id: { type: integer, nullable: false, description: "Primary key" }
+  - schedule_id: { type: integer, nullable: true, description: "FK to schedule.id" }
+  - period_start_date: { type: date, nullable: false, description: "Start date" }
+  - period_end_date: { type: date, nullable: false, description: "End date" }
+  - instructor_id: { type: integer, nullable: true, description: "FK to user.id" }
+foreign_keys:
+  - { from: schedule_id, to_table: schedule, to_column: id }
+  - { from: instructor_id, to_table: user, to_column: id }
+END_TABLE
+
+BEGIN_SECTION: NAMING_CONVENTIONS
+- Tables are singular, lowercase, and prefixed with `public.` in SQL (e.g., public.user).
+- Primary keys are named `id`.
+- Foreign keys follow `<referenced_table>_id`.
+- Columns use snake_case.
+END_SECTION
+
+BEGIN_SECTION: RELATIONSHIPS_SUMMARY
+- user.role_id → system_role.id
+- user.cohort_id → cohort.id
+- user.cohort_subgroup_id → cohort_subgroup.id
+- cohort.program_id → program.id
+- period.schedule_id → schedule.id
+- period.instructor_id → user.id
+- schedule.program_id → program.id; schedule.cohort_id → cohort.id; schedule.cohort_subgroup_id → cohort_subgroup.id
+END_SECTION
+
+BEGIN_SECTION: SCHEMA_NOTES_NON_BINDING
+- This document describes schema structure only. It does not impose query rules.
+- Any narrative policies (e.g., example role codes) are informational, not mandatory.
+- Query construction constraints live in the SELECT rules file and take precedence.
+END_SECTION
+
+END_SCHEMA_DOC

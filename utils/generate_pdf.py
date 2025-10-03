@@ -3,7 +3,7 @@ from reportlab.pdfgen import canvas
 import os
 
 
-def create_rules_pdf(filename="Request_Normalizer_001.pdf", rules_file="rules/RequestNormalizer.txt"):
+def create_rules_pdf(filename="SQLQueryConstructionRulesForSelect.pdf", rules_file="rules/SQLQueryConstructionRulesForSelect.txt"):
     # === Read rules text from external file ===
     if not os.path.exists(rules_file):
         raise FileNotFoundError(f"Rules file not found: {rules_file}")
@@ -14,14 +14,15 @@ def create_rules_pdf(filename="Request_Normalizer_001.pdf", rules_file="rules/Re
     c = canvas.Canvas(filename, pagesize=letter)
 
     # === Metadata ===
-    c.setTitle("Request Normalizer")
+    c.setTitle("SQL Query Construction Rules (SELECT-only)")
     c.setAuthor("AI Scheduling System Project")
-    c.setSubject("System Documentation for Request Normalizer and Input Normalization Rules")
+    c.setSubject("System Documentation for Database Structure")
     c.setKeywords(
-        "AI, Scheduling, PostgreSQL, Database, Normalization, "
-        "Schema, Roles, Mapping, Cohort, Program, User, "
-        "System Role, Subgroup, Schedule, Schedule Item, Period, "
-        "Input Processing, Rules, Consistency, Workflow, Vector Store"
+        "SQL Query Construction Rules (SELECT-only), PostgreSQL, Single Statement, WITH, CTE, "
+        "Multi-Item Packaging, jsonb_build_object, Explicit JOINs, Fully Qualified Names, public schema, "
+        "Singular Table Names, Column Selection, No SELECT *, Aggregations and Grouping, UNION Compatibility, "
+        "Filtering and Type Safety, Injection Safety, Output Markers, Output Format, Performance Hints, "
+        "Error Handling, Parameterization, Aliases, Read-only, No SELECT INTO"
     )
     c.setCreator("ReportLab PDF Generator")
 
@@ -34,7 +35,7 @@ def create_rules_pdf(filename="Request_Normalizer_001.pdf", rules_file="rules/Re
 
     c.setFont("Helvetica", 12)
     y = top_margin
-    c.drawString(left_margin, y, "Request Normalizer")
+    c.drawString(left_margin, y, "SQL Query Construction Rules (SELECT-only)")
     y -= 2 * line_height  # leave space below header
 
     # === Draw text line by line with pagination ===
