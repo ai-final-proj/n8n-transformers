@@ -319,3 +319,4 @@ garbage/
 *.journal
 crash.*
 
+.env
