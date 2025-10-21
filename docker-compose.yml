@@ -4,40 +4,39 @@ services:
     ports:
       - "5678:5678"
     environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - DB_TYPE=sqlite
       - DB_SQLITE_DATABASE=/home/node/.n8n/n8n.sqlite
       - NODE_OPTIONS=--max-old-space-size=6144
     volumes:
       - ./n8n_data:/home/node/.n8n
-    depends_on:
-      - ollama
     networks:
       - n8n-net
 
-  ollama:
-    image: ollama/ollama:latest
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - n8n-net
+#  ollama:
+#    image: ollama/ollama:latest
+#    restart: always
+#    ports:
+#      - "11434:11434"
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    networks:
+#      - n8n-net
+#
+#  huggingface:
+#    image: ghcr.io/huggingface/text-generation-inference:latest
+#    platform: linux/amd64
+#    restart: always
+#    ports:
+#      - "8080:80"
+#    volumes:
+#      - huggingface_data:/data
+#    networks:
+#      - n8n-net
 
-  huggingface:
-    image: ghcr.io/huggingface/text-generation-inference:latest
-    platform: linux/amd64
-    restart: always
-    ports:
-      - "8080:80"
-    volumes:
-      - huggingface_data:/data
-    networks:
-      - n8n-net
-
-volumes:
-  ollama_data:
-  huggingface_data:
+#volumes:
+#  ollama_data:
+#  huggingface_data:
 
 networks:
   n8n-net:

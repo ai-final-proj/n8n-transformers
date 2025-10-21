@@ -1,0 +1,100 @@
+# Title: SQL Query Construction Rules  
+# Collection: SQL_Rules  
+# Retrieve Always  
+
+---
+
+## [BEGIN GENERAL CONSTRUCTION RULES]
+
+- Only `SELECT` statements are allowed unless explicitly authorized (`allowMutation=true`).
+- Always use **explicit JOINs** — avoid comma joins or implicit filters.
+- Do not use `SELECT *`. Always specify column names explicitly.
+- All queries must be syntactically valid PostgreSQL.
+- **Only one complete SQL query per execution** is allowed.  
+  - Avoid chaining multiple `SELECT` or `WITH` statements unless combined using `UNION`, `UNION ALL`, or inside a single CTE or derived table.
+  - Do not write: `SELECT ...; SELECT ...; WITH ...` — this causes a syntax error.
+  - Instead, combine them or return them as separate queries in multiple tool calls when supported.
+
+## [END GENERAL CONSTRUCTION RULES]
+
+---
+
+## [BEGIN TABLE QUALIFICATION RULES]
+
+- Every table name must be **fully qualified** using the `public.` schema prefix.
+- All columns must belong to known tables and match the schema exactly.
+- Use table aliases to improve readability (e.g., `public.user AS u`).
+
+## [END TABLE QUALIFICATION RULES]
+
+---
+
+## [BEGIN JOIN AND RELATIONSHIP RULES]
+
+- Join user roles through:
+  - `public.user.role_id = public.system_role.id`
+  - Filter by `public.system_role.code` (e.g., `'instructor'`, `'learner'`)
+- Respect declared foreign keys when performing JOINs — avoid joining on unrelated columns.
+
+## [END JOIN AND RELATIONSHIP RULES]
+
+---
+
+## [BEGIN ROLE-BASED FILTERS]
+
+- Always use `public.system_role.code` for role-based filtering.
+- Valid role codes include:
+  - `'instructor'`, `'learner'`, `'admin'`, `'replacement_instructor'`, `'visiting_instructor'`
+
+## [END ROLE-BASED FILTERS]
+
+---
+
+## [BEGIN CTE AND SUBQUERY RULES]
+
+- Use Common Table Expressions (CTEs) for multi-step logic only when needed.
+- Always check that subquery aliases and field names match the outer query context.
+- Avoid nesting more than 2 levels deep unless necessary.
+
+## [END CTE AND SUBQUERY RULES]
+
+---
+
+## [BEGIN UNION COMPATIBILITY RULES]
+
+- All queries within a `UNION` or `UNION ALL` must:
+  - Return the same number of columns
+  - Use matching data types
+  - Use consistent column aliases
+  - Use `NULL::TYPE` for padding (e.g., `NULL::TEXT`, `NULL::INT`)
+
+## [END UNION COMPATIBILITY RULES]
+
+---
+
+## [BEGIN FILTERING AND TYPE SAFETY RULES]
+
+- Match field types when filtering or joining (e.g., do not compare `id = 'string'`).
+- Prefer using `IS NOT NULL` for existence checks.
+- Use `COALESCE()` to safely handle NULLs in aggregations.
+
+## [END FILTERING AND TYPE SAFETY RULES]
+
+---
+
+## [BEGIN AGGREGATION AND GROUPING RULES]
+
+- Always use `GROUP BY` for all non-aggregated fields when using `COUNT`, `SUM`, etc.
+- Label all aggregate outputs using `AS` for clarity.
+
+## [END AGGREGATION AND GROUPING RULES]
+
+---
+
+## [BEGIN FINAL OUTPUT STRUCTURE RULES]
+
+- Always return query results using structured column names.
+- Use friendly aliases where applicable (`AS total_learners`, `AS cohort_name`, etc.).
+- Do not wrap query output in strings — raw row data is expected.
+
+## [END FINAL OUTPUT STRUCTURE RULES]

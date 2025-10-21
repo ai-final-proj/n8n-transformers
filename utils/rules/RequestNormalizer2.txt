@@ -1,0 +1,132 @@
+# Title: Request Normalizer  
+# Collection: Request_Normalizer  
+# Retrieve Always
+
+---
+
+## Table and Relationships Structure
+
+### Table: public.program
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- description → TEXT
+- Relationships:
+  - Referenced by `public.cohort.program_id`
+  - Referenced by `public.schedule.program_id`
+  - Referenced by `public.schedule_item.program_id`
+
+---
+
+### Table: public.cohort
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- description → TEXT
+- program_id → INTEGER, FOREIGN KEY → public.program(id)
+- Relationships:
+  - Referenced by `public.cohort_subgroup.cohort_id`
+  - Referenced by `public.schedule.cohort_id`
+  - Referenced by `public.schedule_item.cohort_id`
+  - Referenced by `public.user.cohort_id`
+
+---
+
+### Table: public.cohort_subgroup
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- cohort_id → INTEGER, FOREIGN KEY → public.cohort(id)
+- Relationships:
+  - Referenced by `public.schedule.cohort_subgroup_id`
+  - Referenced by `public.schedule_item.cohort_subgroup_id`
+  - Referenced by `public.user.cohort_subgroup_id`
+
+---
+
+### Table: public.schedule
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- description → TEXT
+- program_id → INTEGER, FOREIGN KEY → public.program(id)
+- cohort_id → INTEGER, FOREIGN KEY → public.cohort(id)
+- cohort_subgroup_id → INTEGER, FOREIGN KEY → public.cohort_subgroup(id)
+- Relationships:
+  - Referenced by `public.schedule_item.schedule_id`
+
+---
+
+### Table: public.schedule_item
+- id → SERIAL PRIMARY KEY
+- schedule_id → INTEGER, FOREIGN KEY → public.schedule(id), NOT NULL
+- program_id → INTEGER, FOREIGN KEY → public.program(id)
+- period_id → INTEGER, FOREIGN KEY → public.period(id)
+- cohort_id → INTEGER, FOREIGN KEY → public.cohort(id)
+- cohort_subgroup_id → INTEGER, FOREIGN KEY → public.cohort_subgroup(id)
+- start_date → TIMESTAMP, NOT NULL
+- end_date → TIMESTAMP, NOT NULL
+
+---
+
+### Table: public.period
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- description → TEXT
+- instructor_id → INTEGER, FOREIGN KEY → public.user(id)
+- location_url → VARCHAR(512)
+- capacity → INTEGER
+- category → ENUM(period_category), NOT NULL
+
+---
+
+### Table: public.user
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- email → VARCHAR(255), NOT NULL, UNIQUE
+- role_id → INTEGER, FOREIGN KEY → public.system_role(id), NOT NULL
+- cohort_id → INTEGER, FOREIGN KEY → public.cohort(id)
+- cohort_subgroup_id → INTEGER, FOREIGN KEY → public.cohort_subgroup(id)
+- status → ENUM(user_status), NOT NULL
+
+---
+
+### Table: public.system_role
+- id → SERIAL PRIMARY KEY
+- name → VARCHAR(255), NOT NULL
+- description → TEXT
+- code → ENUM(role_code), NOT NULL
+
+---
+
+## ENUM Types
+
+- role_code → 'admin', 'instructor', 'learner', 'replacement_instructor', 'visiting_instructor'
+- user_status → 'active', 'inactive'
+- period_category → 'virtual_reality', 'face_to_face', 'assessment', 'learning_course', 'other'
+
+---
+
+## Purpose
+
+The normalizer transforms unstructured user input into schema-aware, database-valid phrasing.  
+Its goal is to produce a `normalizedPrompt` that matches exact table names, column names, enums, and foreign key relationships as defined in the PostgreSQL schema.
+
+---
+
+## Normalization Rules
+
+- Convert all plural references to their singular table names (e.g. `users` → `public.user`)
+- Normalize natural language references to match ENUM values:
+  - "teaching roles" → instructor, visiting_instructor, replacement_instructor
+  - "active users" → status = active
+  - "learners" → role_code = learner
+- Always lowercase table names
+- Always use underscores instead of spaces (e.g. `visiting instructor` → `visiting_instructor`)
+- Always preserve full schema name (e.g. `public.user`)
+
+---
+
+## How It Works
+
+1. Read the user’s raw request
+2. Identify schema-aligned concepts (tables, enums, roles, filters)
+3. Output:
+   - `originalPrompt`: the raw user text
+   - `normalizedPrompt`: rewritten prompt using exact DB structure
