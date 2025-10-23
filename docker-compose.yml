@@ -1,19 +1,36 @@
 services:
   n8n:
     image: n8nio/n8n
+    depends_on:
+      - postgres
     ports:
       - "5678:5678"
     environment:
-      - DATABASE_URL=postgresql+psycopg://neondb_owner:npg_MPZ3lB5RtSve@ep-green-truth-adedoaj5-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/ai_schedule_organizer
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=localhost
+      - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=neondb
-      - DB_POSTGRESDB_USER=neondbowner
-      - DB_POSTGRESDB_PASSWORD=npg_0TbRIMg4nqQo@ep
+      - DB_POSTGRESDB_DATABASE=ai_schedule_organizer
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=postgres
       - NODE_OPTIONS=--max-old-space-size=6144
     volumes:
       - ./n8n_data:/home/node/.n8n
+    networks:
+      - n8n-net
+
+  postgres:
+    image: postgres:15
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_schedule_organizer
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
     networks:
       - n8n-net
 
