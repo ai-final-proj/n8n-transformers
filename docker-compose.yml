@@ -4,9 +4,13 @@ services:
     ports:
       - "5678:5678"
     environment:
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - DB_TYPE=sqlite
-      - DB_SQLITE_DATABASE=/home/node/.n8n/n8n.sqlite
+      - DATABASE_URL=postgresql+psycopg://neondb_owner:npg_MPZ3lB5RtSve@ep-green-truth-adedoaj5-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=localhost
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=neondb
+      - DB_POSTGRESDB_USER=neondbowner
+      - DB_POSTGRESDB_PASSWORD=npg_0TbRIMg4nqQo@ep
       - NODE_OPTIONS=--max-old-space-size=6144
     volumes:
       - ./n8n_data:/home/node/.n8n
