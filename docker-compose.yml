@@ -15,6 +15,7 @@ services:
       - DB_POSTGRESDB_USER=postgres
       - DB_POSTGRESDB_PASSWORD=postgres
       - NODE_OPTIONS=--max-old-space-size=6144
+      -  N8N_SECURE_COOKIE=false
     volumes:
       - ./n8n_data:/home/node/.n8n
     networks:
