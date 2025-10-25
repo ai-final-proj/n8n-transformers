@@ -11,13 +11,13 @@ services:
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    ports:
-      - "5051:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: rudy.design9@gmail.com
-      PGADMIN_DEFAULT_PASSWORD: postgres
-    volumes:
-      - ./pgadmin_data:/var/lib/pgadmin
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   restart: always
+  #   ports:
+  #     - "5051:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: rudy.design9@gmail.com
+  #     PGADMIN_DEFAULT_PASSWORD: postgres
+  #   volumes:
+  #     - ./pgadmin_data:/var/lib/pgadmin

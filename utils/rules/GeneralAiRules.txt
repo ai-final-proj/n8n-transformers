@@ -62,6 +62,46 @@ Examples:
 * Always filter with valid status values where relevant.  
 * Default to status = active if the user request is vague about status.  
 
+8. Query Form (Read-only)  
+* Default to SELECT-only queries.  
+* Do not use SELECT INTO, CREATE TEMP TABLE, or any DDL/DCL operations.  
+* WITH/CTE is allowed only for read-only SELECTs.  
+
+9. Parameterization and Injection Safety  
+* Always use bind parameters ($1, $2, …); never interpolate user input into SQL.  
+* Apply explicit type casts where appropriate (e.g., ::int, ::timestamptz).  
+* Validate enum-coded inputs (role_code, user_status, period_category) against allowed values.  
+
+10. Determinism and Performance  
+* Include ORDER BY whenever returning rows to ensure deterministic results.  
+* Apply a default LIMIT 100 unless a different bound is explicitly required.  
+* Fully qualify columns and prefer explicit JOINs; never use SELECT *.  
+* Favor index-friendly predicates; avoid wrapping indexed columns in functions in WHERE clauses.  
+
+11. Pagination and NULL Handling  
+* Support limit/offset or cursor pagination when returning large result sets.  
+* If paginating, return a next-page pointer (e.g., next_offset or cursor) in outputs.  
+* Use COALESCE only for presentation; do not change filtering semantics.  
+* Do not equate NULL with empty strings or zeros.  
+
+12. Timezone and Temporal Consistency  
+* Treat timestamps as UTC and prefer timestamptz in comparisons.  
+* Perform timezone conversion at presentation layers unless explicitly requested.  
+
+13. Output Contracts (JSON)  
+* Success: return strictly valid JSON with only the properties required by the receiving Agent.  
+* Error: return JSON with an errors array and a concise human-readable summary; include placeholders (e.g., <program_id>) and explain them.  
+* Never include tool call syntax, stack traces, or raw logs in outputs.  
+
+14. Precedence and Source of Truth  
+* When rules conflict across documents, General AI Rules take precedence over module-specific guidance.  
+* DatabaseStructure files (DatabaseStructure*.txt) are the canonical source for table/column names and types.  
+* When uncertain, re-retrieve schema/rules and prefer exact names from schema files.  
+
+15. Versioning and Traceability  
+* Include a version note in summaries when rules materially affect outputs (e.g., "GeneralAiRules v1.1").  
+* Treat absent or stale rules as an error condition and request updated rules via the retriever.  
+
 ### END SECTION: Core Rules
 ------------------------------------------------------------
 

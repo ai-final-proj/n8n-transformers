@@ -1,9 +1,14 @@
+import os
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-import os
 
 
-def create_rules_pdf(filename="SQLQueryConstructionRulesForSelect.pdf", rules_file="rules/SQLQueryConstructionRulesForSelect.txt"):
+def create_rules_pdf(filename="GeneralAiRules.pdf", rules_file="rules/GeneralAiRules.txt"):
+    # Resolve rules file relative to this script so it works from any CWD
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if not os.path.isabs(rules_file):
+        rules_file = os.path.join(script_dir, rules_file)
+
     # === Read rules text from external file ===
     if not os.path.exists(rules_file):
         raise FileNotFoundError(f"Rules file not found: {rules_file}")
@@ -14,15 +19,15 @@ def create_rules_pdf(filename="SQLQueryConstructionRulesForSelect.pdf", rules_fi
     c = canvas.Canvas(filename, pagesize=letter)
 
     # === Metadata ===
-    c.setTitle("SQL Query Construction Rules (SELECT-only)")
-    c.setAuthor("AI Scheduling System Project")
-    c.setSubject("System Documentation for Database Structure")
+    c.setTitle("General AI Rules")
+    c.setAuthor("General AI Rules")
+    c.setSubject("System Documentation for AI Agents Rules")
     c.setKeywords(
-        "SQL Query Construction Rules (SELECT-only), PostgreSQL, Single Statement, WITH, CTE, "
-        "Multi-Item Packaging, jsonb_build_object, Explicit JOINs, Fully Qualified Names, public schema, "
-        "Singular Table Names, Column Selection, No SELECT *, Aggregations and Grouping, UNION Compatibility, "
-        "Filtering and Type Safety, Injection Safety, Output Markers, Output Format, Performance Hints, "
-        "Error Handling, Parameterization, Aliases, Read-only, No SELECT INTO"
+        "General AI Rules, Policies_And_Structure, Purpose, Core Rules, Error Handling, Why These Rules Matter, "
+        "Retrieve Always, System Messages, Outputs, Table and Column Usage, Query Execution, Role and User Handling, Status Handling, "
+        "PostgreSQL, scheduler database, public schema, schema, databaseTableSchema, generalSystemRules, ENUM definitions, "
+        "role_code, user_status, period_category, system_role.code, admin, instructor, learner, replacement_instructor, visiting_instructor, "
+        "active, inactive, placeholders, JSON output, validation, rollback, UPDATE, DELETE, IDs, alias, table alias, consistency, safety"
     )
     c.setCreator("ReportLab PDF Generator")
 
@@ -35,7 +40,7 @@ def create_rules_pdf(filename="SQLQueryConstructionRulesForSelect.pdf", rules_fi
 
     c.setFont("Helvetica", 12)
     y = top_margin
-    c.drawString(left_margin, y, "SQL Query Construction Rules (SELECT-only)")
+    c.drawString(left_margin, y, "General AI Rules")
     y -= 2 * line_height  # leave space below header
 
     # === Draw text line by line with pagination ===
@@ -50,5 +55,6 @@ def create_rules_pdf(filename="SQLQueryConstructionRulesForSelect.pdf", rules_fi
     c.save()
 
 
-# Example usage:
-create_rules_pdf()
+if __name__ == "__main__":
+    # Example usage when run directly
+    create_rules_pdf()
